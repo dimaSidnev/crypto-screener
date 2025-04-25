@@ -1,7 +1,6 @@
-
 import React, { useEffect, useState, useRef } from "react";
 
-const SYMBOLS = ["BTC_USDT", "ETH_USDT", "SOL_USDT", "XRP_USDT", "LTC_USDT", "BNB_USDT", "DOGE_USDT", "ADA_USDT", "AVAX_USDT"];
+const SYMBOLS = ["BTC/USDT", "ETH/USDT", "SOL/USDT", "XRP/USDT", "LTC/USDT", "BNB/USDT", "DOGE/USDT", "ADA/USDT", "AVAX/USDT"];
 const TIMEFRAMES = ["1m", "5m", "15m", "1h"];
 
 export default function App() {
@@ -17,7 +16,7 @@ export default function App() {
       .then((data) => {
         const tickerMap = {};
         data.forEach((item) => {
-          tickerMap[item.currency_pair] = {
+          tickerMap[item.currency_pair.replace("_", "/")] = {
             volume: parseFloat(item.base_volume),
             change: parseFloat(item.change_percentage),
           };
@@ -30,9 +29,10 @@ export default function App() {
     if (paused) return;
     const tradeSockets = {};
     SYMBOLS.forEach((symbol) => {
+      const gateSymbol = symbol.replace("/", "_");
       const ws = new WebSocket("wss://api.gateio.ws/ws/v4/");
       ws.onopen = () => {
-        ws.send(JSON.stringify({ time: Date.now(), channel: "spot.trades", event: "subscribe", payload: [symbol] }));
+        ws.send(JSON.stringify({ time: Date.now(), channel: "spot.trades", event: "subscribe", payload: [gateSymbol] }));
       };
       ws.onmessage = (msg) => {
         const data = JSON.parse(msg.data);
@@ -87,10 +87,11 @@ function ChartCard({ symbol, timeframe, trades, paused }) {
 
   useEffect(() => {
     if (paused) return;
+    const gateSymbol = symbol.replace("/", "_");
     const ws = new WebSocket("wss://api.gateio.ws/ws/v4/");
     wsRef.current = ws;
     ws.onopen = () => {
-      ws.send(JSON.stringify({ time: Date.now(), channel: "spot.order_book_update", event: "subscribe", payload: [symbol, "100ms"] }));
+      ws.send(JSON.stringify({ time: Date.now(), channel: "spot.order_book_update", event: "subscribe", payload: [gateSymbol, "100ms"] }));
     };
     ws.onmessage = (msg) => {
       const data = JSON.parse(msg.data);
@@ -108,7 +109,7 @@ function ChartCard({ symbol, timeframe, trades, paused }) {
       <div style={{ marginBottom: 8, fontWeight: 'bold' }}>{symbol} — {timeframe} — Trades: {trades}</div>
       <iframe
         style={{ width: '100%', height: 200 }}
-        src={`https://s.tradingview.com/embed-widget/mini-symbol-overview/?locale=en#%7B%22symbol%22%3A%22GATEIO%3A${symbol}%22%2C%22width%22%3A%22100%25%22%2C%22height%22%3A%22220%22%2C%22locale%22%3A%22en%22%2C%22dateRange%22%3A%221D%22%2C%22colorTheme%22%3A%22dark%22%2C%22isTransparent%22%3Afalse%7D`}
+        src={`https://s.tradingview.com/embed-widget/mini-symbol-overview/?locale=en#%7B%22symbol%22%3A%22BINANCE%3A${symbol.replace("/", "")}%22%2C%22width%22%3A%22100%25%22%2C%22height%22%3A%22220%22%2C%22locale%22%3A%22en%22%2C%22dateRange%22%3A%221D%22%2C%22colorTheme%22%3A%22dark%22%2C%22isTransparent%22%3Afalse%7D`}
         frameBorder="0"
         allowTransparency
         scrolling="no"
